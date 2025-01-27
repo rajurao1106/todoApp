@@ -7,6 +7,8 @@ const app = express();
 const port = 3000;
 const __dirname = path.resolve();
 
+app.use(cors({ origin: "http://192.168.29.118:5173/" }));
+
 //middleware
 app.use(cors());
 app.use(express.json());
@@ -95,4 +97,3 @@ if (true) {
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);
 });
-
