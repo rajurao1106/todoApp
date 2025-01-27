@@ -1,38 +1,35 @@
-import express from "express";
-import mongoose from "mongoose";
+import express from "express"
+import mongoose from "mongoose"
 import path from "path";
-import cors from "cors";
+import cors from "cors"
 
 const app = express();
 const port = 3000;
-
-// Get the directory name
 const __dirname = path.resolve();
 
-// Middleware
+//middleware
 app.use(cors());
 app.use(express.json());
 
-// Database Connection
+//database connection
 mongoose
   .connect(
-    "mongodb+srv://rajurao1107:raoraju1337@cluster0.zjucb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
-    { useNewUrlParser: true, useUnifiedTopology: true }
+    "mongodb+srv://rajurao1107:raoraju1337@cluster0.zjucb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
   )
   .then(() => {
     console.log("MongoDB connected");
   })
   .catch((err) => {
-    console.error("Database connection error:", err);
+    console.log(err);
   });
 
-// Schema
+//schema
 const taskSchema = new mongoose.Schema({
   title: String,
 });
 const Task = mongoose.model("tasks", taskSchema);
 
-// Routes
+//routes
 app.post("/add-task", async (req, res) => {
   try {
     const { title } = req.body;
@@ -40,8 +37,7 @@ app.post("/add-task", async (req, res) => {
     await addTask.save();
     res.json({ message: "Task added", tasks: addTask });
   } catch (error) {
-    console.error("Error adding task:", error);
-    res.status(500).json({ message: "Error adding task" });
+    console.log(error);
   }
 });
 
@@ -50,8 +46,7 @@ app.get("/get-tasks", async (req, res) => {
     const getTasks = await Task.find();
     res.json(getTasks);
   } catch (error) {
-    console.error("Error fetching tasks:", error);
-    res.status(500).json({ message: "Error fetching tasks" });
+    console.log(error);
   }
 });
 
@@ -84,21 +79,20 @@ app.put("/update-task/:id", async (req, res) => {
 
     res.status(200).json(updatedTask);
   } catch (error) {
-    console.error("Error updating task:", error);
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Serve Frontend (React app)
 if (true) {
-  app.use(express.static(path.join(__dirname, "client", "dist")));
+  	app.use(express.static(path.join(__dirname, "/client/dist")));
+  
+  	app.get("*", (req, res) => {
+  		res.sendFile(path.resolve(__dirname, "client", "dist", "index.html"));
+  	});
+  }
 
-  app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "client", "dist", "index.html"));
-  });
-}
-
-// Start Server
 app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+  console.log(`Example app listening at http://localhost:${port}`);
 });
+
