@@ -1,74 +1,88 @@
-import express from "express"
-import mongoose from "mongoose"
+import express from "express";
+import mongoose from "mongoose";
 import path from "path";
-import cors from "cors"
+import cors from "cors";
+import dotenv from "dotenv";
 
 const app = express();
 const port = 3000;
 const __dirname = path.resolve();
 
-app.use(cors({ origin: "http://192.168.29.118:5173/" }));
-
-//middleware
+// Middleware
 app.use(cors());
 app.use(express.json());
+dotenv.config();
 
-//database connection
+// Database connection
 mongoose
   .connect(
-    "mongodb+srv://rajurao1107:raoraju1337@cluster0.zjucb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    "mongodb+srv://rajurao1107:raoraju1337@cluster0.zjucb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
+    { useNewUrlParser: true, useUnifiedTopology: true }
   )
   .then(() => {
     console.log("MongoDB connected");
   })
   .catch((err) => {
-    console.log(err);
+    console.error("Database connection error:", err);
   });
 
-//schema
+// Schema
 const taskSchema = new mongoose.Schema({
-  title: String,
+  title: { type: String, required: true },
 });
-const Task = mongoose.model("tasks", taskSchema);
+const Task = mongoose.model("Task", taskSchema);
 
-//routes
+// Routes
+// Add a new task
 app.post("/add-task", async (req, res) => {
   try {
     const { title } = req.body;
-    const addTask = new Task({ title });
-    await addTask.save();
-    res.json({ message: "Task added", tasks: addTask });
+    if (!title) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+    const newTask = new Task({ title });
+    const savedTask = await newTask.save();
+    res.status(201).json({ message: "Task added", task: savedTask });
   } catch (error) {
-    console.log(error);
+    console.error("Error adding task:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
+// Get all tasks
 app.get("/get-tasks", async (req, res) => {
   try {
-    const getTasks = await Task.find();
-    res.json(getTasks);
+    const tasks = await Task.find();
+    res.status(200).json(tasks);
   } catch (error) {
-    console.log(error);
+    console.error("Error fetching tasks:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
+// Delete a task by ID
 app.delete("/tasks/:id", async (req, res) => {
   try {
-    const taskId = req.params.id;
-    const deletedTask = await Task.findByIdAndDelete(taskId);
-    res
-      .status(200)
-      .json({ message: "Task deleted successfully", task: deletedTask });
+    const { id } = req.params;
+    const deletedTask = await Task.findByIdAndDelete(id);
+    if (!deletedTask) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+    res.status(200).json({ message: "Task deleted successfully", task: deletedTask });
   } catch (error) {
     console.error("Error deleting task:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
+// Update a task by ID
 app.put("/update-task/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { title } = req.body;
+    if (!title) {
+      return res.status(400).json({ message: "Title is required" });
+    }
 
     const updatedTask = await Task.findByIdAndUpdate(
       id,
@@ -76,24 +90,27 @@ app.put("/update-task/:id", async (req, res) => {
       { new: true }
     );
 
-    if (!updatedTask)
+    if (!updatedTask) {
       return res.status(404).json({ message: "Task not found" });
+    }
 
-    res.status(200).json(updatedTask);
+    res.status(200).json({ message: "Task updated successfully", task: updatedTask });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error updating task:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-if (true) {
-  	app.use(express.static(path.join(__dirname, "/client/dist")));
-  
-  	app.get("*", (req, res) => {
-  		res.sendFile(path.resolve(__dirname, "client", "dist", "index.html"));
-  	});
-  }
+// Serve static files for the frontend
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "client", "dist")));
 
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "client", "dist", "index.html"));
+  });
+}
+
+// Start the server
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
+  console.log(`Server is running at http://localhost:${port}`);
 });
